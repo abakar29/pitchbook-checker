@@ -1,0 +1,13 @@
+[server]
+maxUploadSize = 50
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "dark"
+primaryColor = "#4A78A8"
+backgroundColor = "#000000"
+secondaryBackgroundColor = "#16181C"
+textColor = "#E8EAED"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
