@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pitchbook Checker</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #000; color: #e8eaed; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 16px 80px; }
+  h1 { font-size: 32px; margin: 0 0 8px; }
+  p.lead { color: #9aa3ae; margin: 0 0 28px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+  label.drop { display: block; background: #16181c; border: 1px dashed #3a3e46; border-radius: 10px; padding: 20px; cursor: pointer; }
+  label.drop:hover { border-color: #4A78A8; }
+  label.drop strong { display: block; margin-bottom: 6px; }
+  label.drop span { color: #9aa3ae; font-size: 14px; overflow-wrap: anywhere; }
+  input[type=file] { display: none; }
+  select { width: 100%; margin: 16px 0; padding: 10px; background: #16181c; color: #e8eaed; border: 1px solid #2a2d33; border-radius: 8px; font: inherit; }
+  .row { display: flex; gap: 16px; }
+  button { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #2a2d33; background: #16181c; color: #e8eaed; font: inherit; font-weight: 600; cursor: pointer; }
+  button.primary { background: #4A78A8; border-color: #4A78A8; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  #status { margin-top: 24px; color: #9aa3ae; }
+  #error { margin-top: 24px; padding: 14px 16px; border-radius: 8px; background: #2a1517; border: 1px solid #e07a5f; display: none; }
+  .warn { margin: 12px 0; padding: 12px 16px; border-radius: 8px; background: #2a2412; border: 1px solid #f2cc8f; }
+  #results { margin-top: 32px; }
+  .label { color: #9aa3ae; font-size: 14px; margin-bottom: 12px; }
+</style>
+<style id="checker-css"></style>
+</head>
+<body>
+<main>
+  <h1>Pitchbook Checker</h1>
+  <p class="lead">Upload a pitchbook and its financial model to find numbers that do not match.</p>
+  <div class="grid">
+    <label class="drop"><strong>PowerPoint pitchbook</strong><span id="deck-name">Choose a .pptx file</span>
+      <input type="file" id="deck" accept=".pptx"></label>
+    <label class="drop"><strong>Excel model</strong><span id="model-name">Choose an .xlsx file</span>
+      <input type="file" id="model" accept=".xlsx,.xlsm"></label>
+  </div>
+  <select id="units" aria-label="Model units">
+    <option value="detect">Model units: detect from the file</option>
+    <option value="ones">Model units: ones</option>
+    <option value="thousands">Model units: thousands</option>
+    <option value="millions">Model units: millions</option>
+    <option value="billions">Model units: billions</option>
+  </select>
+  <div class="row">
+    <button class="primary" id="check" disabled>Check</button>
+    <button id="sample">Try with sample files</button>
+  </div>
+  <div id="status"></div>
+  <div id="error" role="alert"></div>
+  <div id="results"></div>
+  <p class="lead" style="margin-top:40px;font-size:13px">Files are processed in memory and not stored. Combined upload limit is 4 MB.</p>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const LIMIT = 4.4 * 1024 * 1024;
+
+function refresh() {
+  $("deck-name").textContent = $("deck").files[0]?.name || "Choose a .pptx file";
+  $("model-name").textContent = $("model").files[0]?.name || "Choose an .xlsx file";
+  $("check").disabled = !($("deck").files[0] && $("model").files[0]);
+}
+$("deck").onchange = $("model").onchange = refresh;
+
+function showError(message) {
+  $("error").textContent = message;
+  $("error").style.display = message ? "block" : "none";
+}
+
+async function run(form) {
+  showError("");
+  $("results").innerHTML = "";
+  $("status").textContent = "Checking every number...";
+  $("check").disabled = $("sample").disabled = true;
+  try {
+    const response = await fetch("/api/check", { method: "POST", body: form });
+    const data = await response.json().catch(() => ({ error: "Unexpected response from the server." }));
+    if (!response.ok) throw new Error(data.error || "Something went wrong.");
+    $("checker-css").textContent = data.css;
+    const label = document.createElement("div");
+    label.className = "label";
+    label.textContent = data.label;
+    const warnings = data.warnings.map((text) => {
+      const box = document.createElement("div");
+      box.className = "warn";
+      box.textContent = text;
+      return box.outerHTML;
+    }).join("");
+    $("results").innerHTML = label.outerHTML + data.summary + warnings + data.findings;
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    $("status").textContent = "";
+    $("sample").disabled = false;
+    refresh();
+  }
+}
+
+$("check").onclick = () => {
+  const deck = $("deck").files[0], model = $("model").files[0];
+  if (deck.size + model.size > LIMIT) return showError("Files are too large. The limit is 4 MB combined.");
+  const form = new FormData();
+  form.append("deck", deck);
+  form.append("model", model);
+  form.append("units", $("units").value);
+  run(form);
+};
+$("sample").onclick = () => {
+  const form = new FormData();
+  form.append("sample", "1");
+  run(form);
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/check.py": {
+      "includeFiles": "{pitchbook_checker.py,samples/**}",
+      "maxDuration": 60
+    }
+  }
+}

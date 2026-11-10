@@ -60,3 +60,11 @@ because models usually hold them as negatives.
 `make_samples.py` writes a fictional 5-slide deck and model to `samples/`. Its `PLANTED` table lists each
 deliberate error, and the tests require exactly those to be reported. They also require a corrected deck to
 report none.
+
+## Vercel version
+
+`vercel/` is a separate deployable: a static upload page (`public/index.html`) plus a Python function
+(`api/check.py`) that runs the same checker. In Vercel, import the repo and set **Root Directory** to `vercel`,
+or run `vercel --prod` from inside that folder. Uploads are limited to about 4 MB combined by Vercel.
+After editing `pitchbook_checker.py`, run `vercel/sync.sh` to refresh the copy the function uses
+(a test fails if they drift apart).
