@@ -1,4 +1,4 @@
-"""Vercel function: POST multipart form (deck, model, units, sample) and get the check result as JSON."""
+"""Vercel service. GET / serves the upload page; POST (deck, model, units, sample as multipart) returns JSON."""
 from __future__ import annotations
 
 import json
@@ -10,12 +10,13 @@ from email.parser import BytesParser
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 from pitchbook_checker import CARD_CSS, check, findings_html, summary_html  # noqa: E402
 
 SAMPLES = ROOT / "samples"
+PAGE = ROOT / "public" / "index.html"
 UNITS = {"detect": None, "ones": 1.0, "thousands": 1e3, "millions": 1e6, "billions": 1e9}
 MAX_BYTES = 4_400_000  # Vercel rejects request bodies over about 4.5 MB
 READ_ERROR = ("These files could not be read. Make sure they are valid .pptx and .xlsx files "
@@ -75,6 +76,16 @@ class handler(BaseHTTPRequestHandler):
         data = json.dumps(payload).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_GET(self) -> None:
+        if self.path.split("?")[0] not in ("/", "/index.html"):
+            return self._send(404, {"error": "Not found."})
+        data = PAGE.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)

@@ -63,8 +63,8 @@ report none.
 
 ## Vercel version
 
-`vercel/` is a separate deployable: a static upload page (`public/index.html`) plus a Python function
-(`api/check.py`) that runs the same checker. In Vercel, import the repo and set **Root Directory** to `vercel`,
-or run `vercel --prod` from inside that folder. Uploads are limited to about 4 MB combined by Vercel.
-After editing `pitchbook_checker.py`, run `vercel/sync.sh` to refresh the copy the function uses
-(a test fails if they drift apart).
+`vercel/` is a separate deployable: one Python service (`vercel/app.py`) that serves the upload page
+(`vercel/public/index.html`) and runs the same checker. The root `vercel.json` declares it as a Vercel service
+and routes every path to it, so leave the project's **Root Directory** blank. Uploads are limited to about
+4 MB combined by Vercel. After editing `pitchbook_checker.py`, run `vercel/sync.sh` to refresh the copy the
+service uses (a test fails if they drift apart).
